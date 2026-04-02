@@ -19,7 +19,7 @@ export async function notifyDiscord(
 	const payload = {
 		embeds: [
 			{
-				title: `📢 ${topicTitle}`,
+				title: `${topicTitle}`,
 				description: summary,
 				url: topicUrl,
 				color,

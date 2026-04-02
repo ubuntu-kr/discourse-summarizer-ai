@@ -64,7 +64,9 @@ export async function handleTestWebhook(
 	}
 
 	// AI summarization
-	const summary = await summarize(c.env, title, content);
+	const result = await summarize(c.env, title, content);
+	const viralTitle = result.title;
+	const summary = result.body;
 
 	// Build post text with length check
 	const urlLength = topicUrl.length;
@@ -87,7 +89,7 @@ export async function handleTestWebhook(
 	let discordSent = false;
 	if (c.env.DISCORD_WEBHOOK_URL) {
 		try {
-			await notifyDiscord(c.env, finalSummary, topicUrl, `[TEST] ${title}`, allResults);
+			await notifyDiscord(c.env, finalSummary, topicUrl, `[TEST] ${viralTitle}`, allResults);
 			discordSent = true;
 		} catch (err) {
 			return c.json({ success: false, error: `Discord notification failed: ${err}` }, 500);
@@ -97,6 +99,7 @@ export async function handleTestWebhook(
 	return c.json({
 		success: true,
 		mode: "test",
+		viralTitle,
 		summary,
 		postText,
 		postTextLength: postText.length,

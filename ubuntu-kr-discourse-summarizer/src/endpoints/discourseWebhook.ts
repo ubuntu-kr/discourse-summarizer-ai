@@ -99,11 +99,11 @@ export async function handleDiscourseWebhook(
 
 	// AI summarization
 	const content = topic.cooked || topic.excerpt || topic.title;
-	const summary = await summarize(env, topic.title, content);
+	const result = await summarize(env, topic.title, content);
+	const viralTitle = result.title;
+	const summary = result.body;
 
 	// Ensure total post text fits within Twitter's 280-char limit
-	// Twitter counts URLs as 23 chars (t.co wrapping), but other platforms don't
-	// Reserve space for "\n\n" (2 chars) + URL
 	const urlLength = topicUrl.length;
 	const maxSummaryLength = 280 - 2 - urlLength; // 2 for "\n\n"
 	let finalSummary = summary;
@@ -161,7 +161,7 @@ export async function handleDiscourseWebhook(
 	)
 		.bind(
 			topic.id,
-			topic.title,
+			viralTitle,
 			topicUrl,
 			summary,
 			twitterUrl,
@@ -173,7 +173,7 @@ export async function handleDiscourseWebhook(
 
 	// Discord notification
 	try {
-		await notifyDiscord(env, summary, topicUrl, topic.title, allResults);
+		await notifyDiscord(env, summary, topicUrl, viralTitle, allResults);
 		await env.DB.prepare(
 			"UPDATE posts SET discord_notified = 1 WHERE topic_id = ?",
 		)
