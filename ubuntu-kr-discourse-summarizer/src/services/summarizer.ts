@@ -46,7 +46,7 @@ export async function summarize(
 					content: `제목: ${title}\n내용: ${content}`,
 				},
 			],
-			max_tokens: 512,
+			max_tokens: 1024,
 		},
 	);
 

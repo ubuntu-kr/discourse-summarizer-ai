@@ -57,14 +57,17 @@ export async function handleDiscourseWebhook(
 	const payload = JSON.parse(rawBody) as DiscourseWebhookPayload;
 	const topic = payload.topic;
 
-	const result = await runPipeline(env, {
-		topicId: topic.id,
-		topicTitle: topic.title,
-		topicSlug: topic.slug,
-		topicContent: topic.cooked || topic.excerpt || topic.title,
-		categoryId: topic.category_id,
-		categorySlug: topic.category_slug,
-	}, false);
+	c.executionCtx.waitUntil(
+		runPipeline(env, {
+			topicId: topic.id,
+			topicTitle: topic.title,
+			topicSlug: topic.slug,
+			topicContent: topic.cooked || topic.excerpt || topic.title,
+			categoryId: topic.category_id,
+			categorySlug: topic.category_slug,
+			postsCount: topic.posts_count,
+		}, false).catch((err) => console.error("Pipeline error:", err)),
+	);
 
-	return c.json(result);
+	return c.json({ success: true, message: "Accepted" }, 202);
 }

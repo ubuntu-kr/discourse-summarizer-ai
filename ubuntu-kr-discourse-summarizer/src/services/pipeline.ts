@@ -15,6 +15,7 @@ export interface PipelineInput {
 	topicContent: string;
 	categoryId: number;
 	categorySlug?: string;
+	postsCount?: number;
 }
 
 export interface PipelineResult {
@@ -33,6 +34,11 @@ export async function runPipeline(
 	testMode: boolean,
 ): Promise<PipelineResult> {
 	const topicUrl = `${DISCOURSE_BASE_URL}/t/${input.topicSlug}/${input.topicId}`;
+
+	// Skip replies (only process the first post in a topic)
+	if (input.postsCount !== undefined && input.postsCount > 1) {
+		return { success: true, message: "Skipped: reply, not a new topic" };
+	}
 
 	// Skip excluded categories
 	if (EXCLUDED_CATEGORY_IDS.includes(input.categoryId)) {

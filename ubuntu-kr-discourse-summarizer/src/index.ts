@@ -10,7 +10,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.post("/webhook/discourse/viral", handleDiscourseWebhook);
 
 // Test endpoint — send a fake webhook without signature validation
-app.post("/webhook/discourse/viral/test", handleTestWebhook);
+// app.post("/webhook/discourse/viral/test", handleTestWebhook);
 
 // Post history API
 app.get("/api/posts/viral", handlePostList);

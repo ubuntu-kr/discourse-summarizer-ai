@@ -55,13 +55,15 @@ export async function handleTestWebhook(
 		}
 	}
 
-	const result = await runPipeline(c.env, {
-		topicId: body.topic_id,
-		topicTitle: title,
-		topicSlug: slug,
-		topicContent: content,
-		categoryId,
-	}, true);
+	c.executionCtx.waitUntil(
+		runPipeline(c.env, {
+			topicId: body.topic_id,
+			topicTitle: title,
+			topicSlug: slug,
+			topicContent: content,
+			categoryId,
+		}, true).catch((err) => console.error("Pipeline error:", err)),
+	);
 
-	return c.json(result);
+	return c.json({ success: true, message: "Accepted (test mode)" }, 202);
 }
