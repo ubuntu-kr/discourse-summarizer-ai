@@ -1,0 +1,26 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "ubuntu-kr-discourse-summarizer",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-03-29",
+	"observability": {
+		"enabled": true
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"ai": {
+		"binding": "AI"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ubuntu-kr-discourse-summarizer",
+			"database_id": "33343900-85ab-4f69-acbf-d55c526c001f"
+		}
+	]
+}
