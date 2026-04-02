@@ -1,24 +1,23 @@
 import type { Context } from "hono";
-import type { Env, DiscourseWebhookPayload } from "../types";
-import { EXCLUDED_CATEGORY_IDS } from "../types";
-import { summarize } from "../services/summarizer";
-import { notifyDiscord } from "../services/discord";
-import type { PlatformResult } from "../types";
+import type { Env } from "../types";
+import { runPipeline } from "../services/pipeline";
 
 const DISCOURSE_BASE_URL = "https://discourse.ubuntu-kr.org";
 
 /**
- * Test endpoint — simulates a Discourse webhook without signature validation.
+ * Test endpoint — same pipeline as the real webhook but:
+ * - No signature validation
+ * - SNS posting skipped (Discord only)
+ * - Can fetch topic content from Discourse by topic_id
  *
  * Usage:
- *   curl -X POST https://<worker>/viral/test \
+ *   curl -X POST https://<worker>/webhook/discourse/viral/test \
  *     -H "Content-Type: application/json" \
- *     -d '{"topic_id": 123, "title": "테스트 제목", "content": "테스트 내용입니다"}'
+ *     -d '{"topic_id": 123}'
  *
- * Or provide a real Discourse topic ID to fetch its content:
- *   curl -X POST https://<worker>/viral/test \
+ *   curl -X POST https://<worker>/webhook/discourse/viral/test \
  *     -H "Content-Type: application/json" \
- *     -d '{"topic_id": 456}'
+ *     -d '{"topic_id": 1, "title": "테스트 제목", "content": "테스트 내용"}'
  */
 export async function handleTestWebhook(
 	c: Context<{ Bindings: Env }>,
@@ -56,53 +55,13 @@ export async function handleTestWebhook(
 		}
 	}
 
-	const topicUrl = `${DISCOURSE_BASE_URL}/t/${slug}/${body.topic_id}`;
+	const result = await runPipeline(c.env, {
+		topicId: body.topic_id,
+		topicTitle: title,
+		topicSlug: slug,
+		topicContent: content,
+		categoryId,
+	}, true);
 
-	// Check excluded category
-	if (EXCLUDED_CATEGORY_IDS.includes(categoryId)) {
-		return c.json({ success: true, message: "Skipped: excluded category", categoryId });
-	}
-
-	// AI summarization
-	const result = await summarize(c.env, title, content);
-	const viralTitle = result.title;
-	const summary = result.body;
-
-	// Build post text with length check
-	const urlLength = topicUrl.length;
-	const maxSummaryLength = 280 - 2 - urlLength;
-	let finalSummary = summary;
-	if (finalSummary.length > maxSummaryLength) {
-		const cut = finalSummary.slice(0, maxSummaryLength - 3);
-		const lastSpace = cut.lastIndexOf(" ");
-		finalSummary = (lastSpace > 50 ? cut.slice(0, lastSpace) : cut) + "...";
-	}
-	const postText = `${finalSummary}\n\n${topicUrl}`;
-
-	// Only send Discord notification (no social posting, no D1 save)
-	const allResults: PlatformResult[] = [
-		{ platform: "twitter", success: false, error: "테스트 모드 — 발송 안 함" },
-		{ platform: "mastodon", success: false, error: "테스트 모드 — 발송 안 함" },
-		{ platform: "bluesky", success: false, error: "테스트 모드 — 발송 안 함" },
-	];
-
-	let discordSent = false;
-	if (c.env.DISCORD_WEBHOOK_URL) {
-		try {
-			await notifyDiscord(c.env, finalSummary, topicUrl, `[TEST] ${viralTitle}`, allResults);
-			discordSent = true;
-		} catch (err) {
-			return c.json({ success: false, error: `Discord notification failed: ${err}` }, 500);
-		}
-	}
-
-	return c.json({
-		success: true,
-		mode: "test",
-		viralTitle,
-		summary,
-		postText,
-		postTextLength: postText.length,
-		discordSent,
-	});
+	return c.json(result);
 }
