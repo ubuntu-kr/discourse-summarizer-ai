@@ -72,16 +72,19 @@ export async function runPipeline(
 	// AI summarization
 	const summary = await summarize(env, input.topicTitle, input.topicContent);
 
-	// Fit within Twitter's 280-char limit
+	// Build post text: title line + summary + URL
+	const titleLine = `[새 포럼 게시물] ${input.topicTitle}`;
 	const urlLength = topicUrl.length;
-	const maxSummaryLength = 280 - 2 - urlLength;
+	const titleLength = titleLine.length;
+	// 280 - titleLine - 2 newlines between title/summary - 2 newlines before URL - URL
+	const maxSummaryLength = 280 - titleLength - 2 - 2 - urlLength;
 	let finalSummary = summary;
 	if (finalSummary.length > maxSummaryLength) {
 		const cut = finalSummary.slice(0, maxSummaryLength - 3);
 		const lastSpace = cut.lastIndexOf(" ");
 		finalSummary = (lastSpace > 50 ? cut.slice(0, lastSpace) : cut) + "...";
 	}
-	const postText = `${finalSummary}\n\n${topicUrl}`;
+	const postText = `${titleLine}\n\n${finalSummary}\n\n${topicUrl}`;
 
 	// Platform posting
 	let allResults: PlatformResult[];
